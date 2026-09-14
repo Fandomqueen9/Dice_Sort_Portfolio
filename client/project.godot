@@ -1,0 +1,19 @@
+; client/project.godot
+config_version=5
+
+[application]
+
+config/name="Dice Sorting Game"
+run/main_scene="res://scenes/Login.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+
+[autoload]
+
+Config="*res://autoloads/Config.gd"
+GameState="*res://autoloads/GameState.gd"
+ApiClient="*res://autoloads/ApiClient.gd"
