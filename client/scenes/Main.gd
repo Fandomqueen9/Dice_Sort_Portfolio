@@ -9,6 +9,7 @@ var dice: Array[Die] = []
 var win_label: Label
 var tooltip_label: Label
 var trays: Array[Tray] = []
+var admin_console: Control
 
 
 func _ready() -> void:
@@ -22,6 +23,9 @@ func _ready() -> void:
 		_spawn_fresh_pile()
 
 	_start_autosave_timer()
+
+	if GameState.role == "admin":
+		_build_admin_console()
 
 
 func _build_environment() -> void:
@@ -94,8 +98,53 @@ func _on_die_sorted(_die: Die) -> void:
 		win_label.visible = true
 
 
+func _build_admin_console() -> void:
+	var canvas := CanvasLayer.new()
+	add_child(canvas)
+
+	admin_console = Control.new()
+	admin_console.visible = false
+	canvas.add_child(admin_console)
+
+	var box := VBoxContainer.new()
+	box.position = Vector2(20, 400)
+	admin_console.add_child(box)
+
+	var input := LineEdit.new()
+	input.placeholder_text = "admin command (e.g. sort_all)"
+	box.add_child(input)
+
+	var output := Label.new()
+	box.add_child(output)
+
+	input.text_submitted.connect(func(command_text: String):
+		var result := await ApiClient.admin_command(command_text)
+		if result.ok and command_text == "sort_all":
+			apply_sort_all()
+		output.text = str(result.data)
+		input.text = ""
+	)
+
+
+func toggle_admin_console() -> void:
+	if admin_console:
+		admin_console.visible = not admin_console.visible
+
+
 func apply_sort_all() -> void:
-	pass  # implemented in Task 12
+	for die in dice:
+		if not die.sorted:
+			for tray in trays:
+				if tray.tray_color.is_equal_approx(die.set_color):
+					die.global_position = tray.global_position + Vector3(0, 0.3, 0)
+					die.mark_sorted()
+					break
+	_on_die_sorted(null)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if GameState.role == "admin" and event is InputEventKey and event.pressed and event.keycode == KEY_QUOTELEFT:
+		toggle_admin_console()
 
 
 func _spawn_fresh_pile() -> void:
