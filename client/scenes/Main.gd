@@ -8,12 +8,14 @@ var player: CharacterBody3D
 var dice: Array[Die] = []
 var win_label: Label
 var tooltip_label: Label
+var trays: Array[Tray] = []
 
 
 func _ready() -> void:
 	_build_environment()
 	_build_player()
 	_build_ui()
+	_build_trays()
 	_spawn_fresh_pile()
 
 
@@ -67,6 +69,28 @@ func show_pickup_tooltip() -> void:
 	tooltip_label.visible = true
 	await get_tree().create_timer(4.0).timeout
 	tooltip_label.visible = false
+
+
+func _build_trays() -> void:
+	var colors := GameState.SET_COLORS
+	for i in range(colors.size()):
+		var tray := Tray.new()
+		tray.setup(colors[i])
+		var angle := (float(i) / colors.size()) * TAU
+		var radius := ROOM_SIZE / 2.0 - 1.0
+		tray.position = Vector3(cos(angle) * radius, 0.2, sin(angle) * radius)
+		tray.die_sorted.connect(_on_die_sorted)
+		add_child(tray)
+		trays.append(tray)
+
+
+func _on_die_sorted(_die: Die) -> void:
+	if dice.all(func(d): return d.sorted):
+		win_label.visible = true
+
+
+func apply_sort_all() -> void:
+	pass  # implemented in Task 12
 
 
 func _spawn_fresh_pile() -> void:
