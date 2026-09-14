@@ -6,11 +6,14 @@ const SET_COUNT_MAX := 10
 
 var player: CharacterBody3D
 var dice: Array[Die] = []
+var win_label: Label
+var tooltip_label: Label
 
 
 func _ready() -> void:
 	_build_environment()
 	_build_player()
+	_build_ui()
 	_spawn_fresh_pile()
 
 
@@ -43,8 +46,27 @@ func _build_player() -> void:
 	add_child(player)
 
 
+func _build_ui() -> void:
+	var canvas := CanvasLayer.new()
+	add_child(canvas)
+
+	win_label = Label.new()
+	win_label.text = "All sets sorted!"
+	win_label.visible = false
+	win_label.position = Vector2(400, 50)
+	canvas.add_child(win_label)
+
+	tooltip_label = Label.new()
+	tooltip_label.text = "Click to pick up. Click again to place it in a matching tray."
+	tooltip_label.visible = false
+	tooltip_label.position = Vector2(20, 20)
+	canvas.add_child(tooltip_label)
+
+
 func show_pickup_tooltip() -> void:
-	pass  # implemented in Task 9
+	tooltip_label.visible = true
+	await get_tree().create_timer(4.0).timeout
+	tooltip_label.visible = false
 
 
 func _spawn_fresh_pile() -> void:
