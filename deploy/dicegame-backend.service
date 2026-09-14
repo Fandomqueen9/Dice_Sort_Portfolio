@@ -1,0 +1,14 @@
+[Unit]
+Description=Dice Sorting Game Backend
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/dicegame
+Environment=SECRET_KEY=change-me-to-a-real-secret
+Environment=DICEGAME_DB_PATH=/var/lib/dicegame/dicegame.db
+ExecStart=/opt/dicegame/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:8000 backend.wsgi:app
+Restart=on-failure
+User=dicegame
+
+[Install]
+WantedBy=multi-user.target
