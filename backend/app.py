@@ -5,6 +5,7 @@ from flask import Flask
 from . import db
 from .auth import auth_bp, hash_password
 from .game import game_bp
+from .admin import admin_bp
 
 DEFAULT_ADMIN_USERNAME = "admin"
 DEFAULT_ADMIN_PASSWORD = "password1"  # intentionally weak — see spec Auth Model
@@ -24,6 +25,7 @@ def create_app(db_path: str = "dicegame.db", secret_key: str | None = None) -> F
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(game_bp)
+    app.register_blueprint(admin_bp)
     app.teardown_appcontext(db.close_db)
 
     return app
