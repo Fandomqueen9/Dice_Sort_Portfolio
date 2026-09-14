@@ -16,7 +16,12 @@ func _ready() -> void:
 	_build_player()
 	_build_ui()
 	_build_trays()
-	_spawn_fresh_pile()
+
+	var loaded := await _try_load_saved_state()
+	if not loaded:
+		_spawn_fresh_pile()
+
+	_start_autosave_timer()
 
 
 func _build_environment() -> void:
@@ -106,3 +111,48 @@ func _spawn_fresh_pile() -> void:
 			die.position = Vector3(randf_range(-1.5, 1.5), randf_range(1.0, 3.0), randf_range(-1.5, 1.5))
 			add_child(die)
 			dice.append(die)
+
+
+func _try_load_saved_state() -> bool:
+	if GameState.role == "guest":
+		return false
+
+	var result := await ApiClient.load_game()
+	if not result.ok or result.data.get("dice_state") == null:
+		return false
+
+	for entry in result.data["dice_state"]:
+		var die := Die.new()
+		var color := Color(entry["color"][0], entry["color"][1], entry["color"][2])
+		die.setup(entry["type"], color)
+		die.position = Vector3(entry["position"][0], entry["position"][1], entry["position"][2])
+		add_child(die)
+		if entry["sorted"]:
+			die.mark_sorted()
+		dice.append(die)
+
+	return true
+
+
+func save_current_state() -> void:
+	if GameState.role == "guest":
+		return
+
+	var state: Array = []
+	for die in dice:
+		state.append(die.serialize_state())
+	await ApiClient.save_game(state)
+
+
+func _start_autosave_timer() -> void:
+	var timer := Timer.new()
+	timer.wait_time = 30.0
+	timer.timeout.connect(func(): save_current_state())
+	add_child(timer)
+	timer.start()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		await save_current_state()
+		get_tree().quit()
