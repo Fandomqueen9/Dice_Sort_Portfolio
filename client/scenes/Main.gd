@@ -1,13 +1,17 @@
 extends Node3D
 
 const ROOM_SIZE := 10.0
+const SET_COUNT_MIN := 5
+const SET_COUNT_MAX := 10
 
 var player: CharacterBody3D
+var dice: Array[Die] = []
 
 
 func _ready() -> void:
 	_build_environment()
 	_build_player()
+	_spawn_fresh_pile()
 
 
 func _build_environment() -> void:
@@ -41,3 +45,18 @@ func _build_player() -> void:
 
 func show_pickup_tooltip() -> void:
 	pass  # implemented in Task 9
+
+
+func _spawn_fresh_pile() -> void:
+	var set_count := randi_range(SET_COUNT_MIN, SET_COUNT_MAX)
+	var colors := GameState.SET_COLORS.duplicate()
+	colors.shuffle()
+
+	for s in range(set_count):
+		var color: Color = colors[s % colors.size()]
+		for die_type in GameState.DIE_TYPES:
+			var die := Die.new()
+			die.setup(die_type, color)
+			die.position = Vector3(randf_range(-1.5, 1.5), randf_range(1.0, 3.0), randf_range(-1.5, 1.5))
+			add_child(die)
+			dice.append(die)
