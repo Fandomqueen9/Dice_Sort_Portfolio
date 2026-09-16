@@ -6,10 +6,12 @@ var player: CharacterBody3D
 var dice: Array[Die] = []
 var win_label: Label
 var tooltip_label: Label
+var hint_label: Label
 var trays: Array[Tray] = []
 var admin_console: Control
 var admin_input: LineEdit
 var pause_menu: Control
+var multi_carry_unlocked: bool = false
 
 
 func _ready() -> void:
@@ -119,11 +121,25 @@ func _build_ui() -> void:
 	tooltip_label.position = Vector2(20, 20)
 	canvas.add_child(tooltip_label)
 
+	hint_label = Label.new()
+	hint_label.text = "Complete 1 set to unlock the next ability"
+	hint_label.position = Vector2(20, 50)
+	canvas.add_child(hint_label)
+
 
 func show_pickup_tooltip() -> void:
 	tooltip_label.visible = true
 	await get_tree().create_timer(4.0).timeout
 	tooltip_label.visible = false
+
+
+func _on_multi_carry_unlocked() -> void:
+	multi_carry_unlocked = true
+	player.unlock_multi_carry()
+
+	hint_label.text = "Multi-carry unlocked! You can now hold up to 3 dice at once."
+	await get_tree().create_timer(4.0).timeout
+	hint_label.visible = false
 
 
 func _build_trays() -> void:
@@ -142,8 +158,24 @@ func _build_trays() -> void:
 
 
 func _on_die_sorted(_die: Die) -> void:
+	if not multi_carry_unlocked and _any_set_fully_sorted():
+		_on_multi_carry_unlocked()
+
 	if dice.all(func(d): return d.sorted):
 		win_label.visible = true
+
+
+func _any_set_fully_sorted() -> bool:
+	var checked_colors: Array[Color] = []
+	for die in dice:
+		if checked_colors.any(func(c): return c.is_equal_approx(die.set_color)):
+			continue
+		checked_colors.append(die.set_color)
+
+		var matching := dice.filter(func(d): return d.set_color.is_equal_approx(die.set_color))
+		if matching.all(func(d): return d.sorted):
+			return true
+	return false
 
 
 func _build_admin_console() -> void:
@@ -255,7 +287,7 @@ func toggle_pause_menu() -> void:
 
 
 func _on_restart_pressed() -> void:
-	player.release_held_die()
+	player.release_held_dice()
 	for die in dice:
 		die.reset()
 		die.global_position = Vector3(randf_range(-2.5, 2.5), randf_range(1.0, 3.0), randf_range(-2.5, 2.5))
@@ -331,6 +363,7 @@ func _try_load_saved_state() -> bool:
 				tray.mark_type_present(entry["type"])
 		dice.append(die)
 
+	_on_die_sorted(null)
 	return true
 
 

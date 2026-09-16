@@ -8,9 +8,18 @@ const INTERACT_DISTANCE := 2.5
 
 var camera: Camera3D
 var interact_ray: RayCast3D
-var held_die: Node3D = null
+var held_dice: Array[Node3D] = []
 var hovered_die: Node3D = null
 var crosshair: Control
+var max_held_dice: int = 1
+
+# Local offsets (right, up, forward) for each carry slot so held dice don't
+# stack inside each other once multi-carry is unlocked.
+const HOLD_OFFSETS := [
+	Vector3(0.0, 0.0, -1.2),
+	Vector3(-0.35, -0.05, -1.1),
+	Vector3(0.35, -0.05, -1.1),
+]
 
 
 func _ready() -> void:
@@ -104,12 +113,16 @@ func _physics_process(delta: float) -> void:
 	_update_hover()
 	crosshair.visible = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 
-	if held_die:
-		held_die.global_position = camera.global_position + camera.global_transform.basis.z * -1.2
+	for i in range(held_dice.size()):
+		var offset: Vector3 = HOLD_OFFSETS[i]
+		held_dice[i].global_position = camera.global_position \
+			+ camera.global_transform.basis.x * offset.x \
+			+ camera.global_transform.basis.y * offset.y \
+			+ camera.global_transform.basis.z * offset.z
 
 
 func _update_hover() -> void:
-	if held_die:
+	if held_dice.size() >= max_held_dice:
 		return
 
 	interact_ray.force_raycast_update()
@@ -128,16 +141,16 @@ func _update_hover() -> void:
 
 
 func _on_interact_pressed() -> void:
-	if held_die:
-		_release_die()
-	elif hovered_die:
+	if hovered_die and held_dice.size() < max_held_dice:
 		_pick_up_die(hovered_die)
+	elif held_dice.size() > 0:
+		_release_all_dice()
 
 
 func _pick_up_die(die: Node3D) -> void:
 	die.set_highlighted(false)
 	die.pick_up()
-	held_die = die
+	held_dice.append(die)
 	hovered_die = null
 
 	if not GameState.has_seen_pickup_tooltip:
@@ -145,11 +158,16 @@ func _pick_up_die(die: Node3D) -> void:
 		get_tree().current_scene.show_pickup_tooltip()
 
 
-func _release_die() -> void:
-	held_die.release()
-	held_die = null
+func _release_all_dice() -> void:
+	for die in held_dice:
+		die.release()
+	held_dice.clear()
 
 
-func release_held_die() -> void:
-	if held_die:
-		_release_die()
+func release_held_dice() -> void:
+	if held_dice.size() > 0:
+		_release_all_dice()
+
+
+func unlock_multi_carry() -> void:
+	max_held_dice = 3
