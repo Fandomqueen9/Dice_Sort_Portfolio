@@ -313,7 +313,7 @@ func apply_sort_all() -> void:
 		if not die.sorted:
 			for tray in trays:
 				if tray.tray_color.is_equal_approx(die.set_color):
-					die.global_position = tray.global_position + Vector3(0, 0.3, 0)
+					die.global_position = tray.global_position + tray.slot_offset_for(die.die_type)
 					die.mark_sorted()
 					tray.mark_type_present(die.die_type)
 					break

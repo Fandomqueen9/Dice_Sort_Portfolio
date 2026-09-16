@@ -12,18 +12,21 @@ const SIGN_DISTANCE := 0.7
 const SIGN_HEIGHT := 1.0
 const MINI_DIE_SCALE := 0.85
 const MATCHED_OUTLINE_COLOR := Color(0.2, 0.9, 0.3)
+const TRAY_LAYOUT_SCALE := 0.55
+const TRAY_SLOT_HEIGHT := 0.3
 
-# Three straight, evenly-spaced rows (2 / 3 / 2), d20 centered in the
-# middle row. One offset per entry in GameState.DIE_TYPES, matched by index.
-const MINI_DIE_OFFSETS := [
-	Vector2(-0.35, 0.28),  # d4    top-left
-	Vector2(0.35, 0.28),   # d6    top-right
-	Vector2(-0.55, 0.0),   # d8    mid-left
-	Vector2(0.55, 0.0),    # d10   mid-right
-	Vector2(-0.35, -0.28), # d12   bottom-left
-	Vector2(0.0, 0.0),     # d20   center
-	Vector2(0.35, -0.28),  # d100  bottom-right
-]
+# Shared 2/3/2 grid layout (d20 centered) — used both for the sign display
+# and for where a sorted die actually lands inside the tray, so the tray
+# ends up laid out the same way the sign shows it.
+const TYPE_LAYOUT := {
+	"d4": Vector2(-0.35, 0.28),   # top-left
+	"d6": Vector2(0.35, 0.28),    # top-right
+	"d8": Vector2(-0.55, 0.0),    # mid-left
+	"d10": Vector2(0.55, 0.0),    # mid-right
+	"d12": Vector2(-0.35, -0.28), # bottom-left
+	"d20": Vector2(0.0, 0.0),     # center
+	"d100": Vector2(0.35, -0.28), # bottom-right
+}
 
 
 func setup(color: Color, outward_direction: Vector3) -> void:
@@ -51,11 +54,16 @@ func setup(color: Color, outward_direction: Vector3) -> void:
 
 func _on_body_entered(body: Node) -> void:
 	if body is Die and not body.sorted and body.set_color.is_equal_approx(tray_color):
-		body.global_position = global_position + Vector3(0, 0.3, 0)
+		body.global_position = global_position + slot_offset_for(body.die_type)
 		body.mark_sorted()
 		die_sorted.emit(body)
 		mark_type_present(body.die_type)
 	# wrong color, or already sorted: no-op — die just rests here physically, no punishment
+
+
+func slot_offset_for(die_type: String) -> Vector3:
+	var offset: Vector2 = TYPE_LAYOUT.get(die_type, Vector2.ZERO)
+	return Vector3(offset.x * TRAY_LAYOUT_SCALE, TRAY_SLOT_HEIGHT, offset.y * TRAY_LAYOUT_SCALE)
 
 
 func mark_type_present(die_type: String) -> void:
@@ -86,17 +94,16 @@ func _build_sign(color: Color, outward_direction: Vector3) -> void:
 	board.material_override = board_material
 	sign_root.add_child(board)
 
-	var die_types := GameState.DIE_TYPES
-	for i in range(die_types.size()):
+	for die_type in GameState.DIE_TYPES:
 		var mini_die := Die.new()
-		mini_die.setup(die_types[i], color)
+		mini_die.setup(die_type, color)
 		mini_die.freeze = true
 		mini_die.collision_layer = 0
 		mini_die.collision_mask = 0
 		mini_die.set_outline_color(MATCHED_OUTLINE_COLOR)
 		mini_die.scale = Vector3.ONE * MINI_DIE_SCALE
 
-		var offset: Vector2 = MINI_DIE_OFFSETS[i]
+		var offset: Vector2 = TYPE_LAYOUT.get(die_type, Vector2.ZERO)
 		mini_die.position = Vector3(offset.x, offset.y, -0.1)
 		sign_root.add_child(mini_die)
-		_mini_dice_by_type[die_types[i]] = mini_die
+		_mini_dice_by_type[die_type] = mini_die
