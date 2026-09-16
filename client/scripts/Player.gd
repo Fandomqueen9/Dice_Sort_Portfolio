@@ -10,6 +10,7 @@ var camera: Camera3D
 var interact_ray: RayCast3D
 var held_die: Node3D = null
 var hovered_die: Node3D = null
+var crosshair: Control
 
 
 func _ready() -> void:
@@ -31,6 +32,38 @@ func _ready() -> void:
 	interact_ray.collide_with_areas = false
 	interact_ray.collide_with_bodies = true
 	camera.add_child(interact_ray)
+
+	_build_crosshair()
+
+
+func _build_crosshair() -> void:
+	var canvas := CanvasLayer.new()
+	add_child(canvas)
+
+	crosshair = Control.new()
+	crosshair.set_anchors_preset(Control.PRESET_FULL_RECT)
+	crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(crosshair)
+
+	var horizontal := ColorRect.new()
+	horizontal.color = Color(1, 1, 1, 0.85)
+	horizontal.size = Vector2(8, 2)
+	horizontal.anchor_left = 0.5
+	horizontal.anchor_right = 0.5
+	horizontal.anchor_top = 0.5
+	horizontal.anchor_bottom = 0.5
+	horizontal.position = Vector2(-4, -1)
+	crosshair.add_child(horizontal)
+
+	var vertical := ColorRect.new()
+	vertical.color = Color(1, 1, 1, 0.85)
+	vertical.size = Vector2(2, 8)
+	vertical.anchor_left = 0.5
+	vertical.anchor_right = 0.5
+	vertical.anchor_top = 0.5
+	vertical.anchor_bottom = 0.5
+	vertical.position = Vector2(-1, -4)
+	crosshair.add_child(vertical)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -67,6 +100,7 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_update_hover()
+	crosshair.visible = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 
 	if held_die:
 		held_die.global_position = camera.global_position + camera.global_transform.basis.z * -1.2
