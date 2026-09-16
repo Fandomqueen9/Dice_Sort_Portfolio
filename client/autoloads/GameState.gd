@@ -4,6 +4,7 @@ extends Node
 var token: String = ""
 var role: String = ""
 var has_seen_pickup_tooltip: bool = false
+var set_count: int = 5
 
 const DIE_TYPES: Array[String] = ["d4", "d6", "d8", "d10", "d12", "d20", "d100"]
 const SET_COLORS: Array[Color] = [

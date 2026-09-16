@@ -72,4 +72,4 @@ func _on_guest_pressed() -> void:
 
 func _enter_game(data: Dictionary) -> void:
 	GameState.set_session(data.get("token", ""), data.get("role", ""))
-	get_tree().change_scene_to_file("res://scenes/Main.tscn")
+	get_tree().change_scene_to_file("res://scenes/Settings.tscn")

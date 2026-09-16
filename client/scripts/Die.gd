@@ -73,8 +73,17 @@ func _build_outline(model_instance: Node3D, model_scale: float) -> void:
 
 
 func _build_collision(mesh_instances: Array[MeshInstance3D], model_scale: float) -> void:
+	# A bounding-box collider instead of a convex hull of the full detailed
+	# mesh — with ~70 dice colliding at once, a hull with hundreds of faces
+	# per die (from the recessed pip/number geometry) made physics unplayably
+	# slow. The box is invisible and close enough for sorting/carrying feel.
+	var mesh_aabb := mesh_instances[0].mesh.get_aabb()
+
 	var shape := CollisionShape3D.new()
-	shape.shape = mesh_instances[0].mesh.create_convex_shape()
+	var box := BoxShape3D.new()
+	box.size = mesh_aabb.size
+	shape.shape = box
+	shape.position = mesh_aabb.get_center()
 	shape.scale = Vector3.ONE * model_scale
 	add_child(shape)
 
