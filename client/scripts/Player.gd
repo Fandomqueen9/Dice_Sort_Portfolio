@@ -47,6 +47,7 @@ func _build_crosshair() -> void:
 
 	var horizontal := ColorRect.new()
 	horizontal.color = Color(1, 1, 1, 0.85)
+	horizontal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	horizontal.size = Vector2(8, 2)
 	horizontal.anchor_left = 0.5
 	horizontal.anchor_right = 0.5
@@ -57,6 +58,7 @@ func _build_crosshair() -> void:
 
 	var vertical := ColorRect.new()
 	vertical.color = Color(1, 1, 1, 0.85)
+	vertical.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vertical.size = Vector2(2, 8)
 	vertical.anchor_left = 0.5
 	vertical.anchor_right = 0.5
