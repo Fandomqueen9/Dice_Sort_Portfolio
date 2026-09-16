@@ -8,6 +8,8 @@ var win_label: Label
 var tooltip_label: Label
 var trays: Array[Tray] = []
 var admin_console: Control
+var admin_input: LineEdit
+var pause_menu: Control
 
 
 func _ready() -> void:
@@ -24,6 +26,7 @@ func _ready() -> void:
 	_start_autosave_timer()
 
 	_build_admin_console()
+	_build_pause_menu()
 
 
 func _build_environment() -> void:
@@ -139,14 +142,14 @@ func _build_admin_console() -> void:
 	box.position = Vector2(20, 400)
 	admin_console.add_child(box)
 
-	var input := LineEdit.new()
-	input.placeholder_text = "command (try 'help')"
-	box.add_child(input)
+	admin_input = LineEdit.new()
+	admin_input.placeholder_text = "command (try 'help')"
+	box.add_child(admin_input)
 
 	var output := Label.new()
 	box.add_child(output)
 
-	input.text_submitted.connect(func(command_text: String):
+	admin_input.text_submitted.connect(func(command_text: String):
 		var result := await ApiClient.admin_command(command_text)
 		if result.ok and command_text == "sort_all":
 			apply_sort_all()
@@ -156,13 +159,75 @@ func _build_admin_console() -> void:
 			output.text = result.data["error"]
 		else:
 			output.text = str(result.data)
-		input.text = ""
+		admin_input.text = ""
 	)
 
 
 func toggle_admin_console() -> void:
-	if admin_console:
-		admin_console.visible = not admin_console.visible
+	if not admin_console:
+		return
+
+	admin_console.visible = not admin_console.visible
+	if admin_console.visible:
+		admin_input.grab_focus()
+	else:
+		admin_input.release_focus()
+
+
+func _build_pause_menu() -> void:
+	var canvas := CanvasLayer.new()
+	add_child(canvas)
+
+	pause_menu = Control.new()
+	pause_menu.visible = false
+	canvas.add_child(pause_menu)
+
+	var box := VBoxContainer.new()
+	box.position = Vector2(400, 250)
+	pause_menu.add_child(box)
+
+	var title := Label.new()
+	title.text = "Paused"
+	box.add_child(title)
+
+	var resume_button := Button.new()
+	resume_button.text = "Resume"
+	resume_button.pressed.connect(toggle_pause_menu)
+	box.add_child(resume_button)
+
+	var save_button := Button.new()
+	save_button.text = "Save"
+	save_button.pressed.connect(func(): await save_current_state())
+	box.add_child(save_button)
+
+	var quit_menu_button := Button.new()
+	quit_menu_button.text = "Quit to Menu"
+	quit_menu_button.pressed.connect(_on_quit_to_menu_pressed)
+	box.add_child(quit_menu_button)
+
+	var quit_desktop_button := Button.new()
+	quit_desktop_button.text = "Quit to Desktop"
+	quit_desktop_button.pressed.connect(_on_quit_to_desktop_pressed)
+	box.add_child(quit_desktop_button)
+
+
+func toggle_pause_menu() -> void:
+	if not pause_menu:
+		return
+
+	pause_menu.visible = not pause_menu.visible
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if pause_menu.visible else Input.MOUSE_MODE_CAPTURED
+
+
+func _on_quit_to_menu_pressed() -> void:
+	await save_current_state()
+	GameState.log_out()
+	get_tree().change_scene_to_file("res://scenes/Login.tscn")
+
+
+func _on_quit_to_desktop_pressed() -> void:
+	await save_current_state()
+	get_tree().quit()
 
 
 func apply_sort_all() -> void:
@@ -179,6 +244,9 @@ func apply_sort_all() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_QUOTELEFT:
 		toggle_admin_console()
+
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		toggle_pause_menu()
 
 
 func _spawn_fresh_pile() -> void:
