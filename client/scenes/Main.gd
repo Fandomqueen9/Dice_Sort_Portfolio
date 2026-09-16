@@ -129,13 +129,15 @@ func show_pickup_tooltip() -> void:
 func _build_trays() -> void:
 	var colors := GameState.SET_COLORS
 	for i in range(colors.size()):
-		var tray := Tray.new()
-		tray.setup(colors[i])
 		var angle := (float(i) / colors.size()) * TAU
 		var radius := ROOM_SIZE / 2.0 - 1.0
-		tray.position = Vector3(cos(angle) * radius, 0.2, sin(angle) * radius)
-		tray.die_sorted.connect(_on_die_sorted)
+		var direction := Vector3(cos(angle), 0, sin(angle))
+
+		var tray := Tray.new()
+		tray.position = direction * radius + Vector3(0, 0.2, 0)
 		add_child(tray)
+		tray.setup(colors[i], direction)
+		tray.die_sorted.connect(_on_die_sorted)
 		trays.append(tray)
 
 
@@ -228,6 +230,11 @@ func _build_pause_menu() -> void:
 		save_status_label.visible = false
 	)
 
+	var restart_button := Button.new()
+	restart_button.text = "Restart"
+	restart_button.pressed.connect(_on_restart_pressed)
+	box.add_child(restart_button)
+
 	var quit_menu_button := Button.new()
 	quit_menu_button.text = "Quit to Menu"
 	quit_menu_button.pressed.connect(_on_quit_to_menu_pressed)
@@ -245,6 +252,15 @@ func toggle_pause_menu() -> void:
 
 	pause_menu.visible = not pause_menu.visible
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if pause_menu.visible else Input.MOUSE_MODE_CAPTURED
+
+
+func _on_restart_pressed() -> void:
+	player.release_held_die()
+	for die in dice:
+		die.reset()
+		die.global_position = Vector3(randf_range(-2.5, 2.5), randf_range(1.0, 3.0), randf_range(-2.5, 2.5))
+	win_label.visible = false
+	toggle_pause_menu()
 
 
 func _on_quit_to_menu_pressed() -> void:

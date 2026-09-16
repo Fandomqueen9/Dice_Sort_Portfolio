@@ -127,6 +127,14 @@ func mark_sorted() -> void:
 	collision_layer = 0
 
 
+func reset() -> void:
+	sorted = false
+	freeze = false
+	collision_layer = 1
+	linear_velocity = Vector3.ZERO
+	angular_velocity = Vector3.ZERO
+
+
 func serialize_state() -> Dictionary:
 	return {
 		"type": die_type,

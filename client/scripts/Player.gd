@@ -112,3 +112,8 @@ func _pick_up_die(die: Node3D) -> void:
 func _release_die() -> void:
 	held_die.release()
 	held_die = null
+
+
+func release_held_die() -> void:
+	if held_die:
+		_release_die()
