@@ -18,7 +18,8 @@ func setup(type: String, color: Color) -> void:
 	die_type = type
 	set_color = color
 
-	var size := Vector3.ONE * SIZE_BY_TYPE.get(type, 0.2)
+	var scale_amount: float = SIZE_BY_TYPE.get(type, 0.2)
+	var size: Vector3 = Vector3.ONE * scale_amount
 
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
