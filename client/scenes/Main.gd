@@ -14,6 +14,7 @@ var admin_console: Control
 
 func _ready() -> void:
 	_build_environment()
+	_build_walls()
 	_build_player()
 	_build_ui()
 	_build_trays()
@@ -24,8 +25,7 @@ func _ready() -> void:
 
 	_start_autosave_timer()
 
-	if GameState.role == "admin":
-		_build_admin_console()
+	_build_admin_console()
 
 
 func _build_environment() -> void:
@@ -49,6 +49,37 @@ func _build_environment() -> void:
 
 	floor_body.position = Vector3(0, -0.1, 0)
 	add_child(floor_body)
+
+
+func _build_walls() -> void:
+	var wall_height := 3.0
+	var wall_thickness := 0.3
+	var half := ROOM_SIZE / 2.0
+
+	var configs := [
+		{"position": Vector3(0, wall_height / 2.0, -half), "size": Vector3(ROOM_SIZE, wall_height, wall_thickness)},
+		{"position": Vector3(0, wall_height / 2.0, half), "size": Vector3(ROOM_SIZE, wall_height, wall_thickness)},
+		{"position": Vector3(-half, wall_height / 2.0, 0), "size": Vector3(wall_thickness, wall_height, ROOM_SIZE)},
+		{"position": Vector3(half, wall_height / 2.0, 0), "size": Vector3(wall_thickness, wall_height, ROOM_SIZE)},
+	]
+
+	for config in configs:
+		var wall_body := StaticBody3D.new()
+
+		var wall_shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = config["size"]
+		wall_shape.shape = box
+		wall_body.add_child(wall_shape)
+
+		var wall_mesh := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = config["size"]
+		wall_mesh.mesh = mesh
+		wall_body.add_child(wall_mesh)
+
+		wall_body.position = config["position"]
+		add_child(wall_body)
 
 
 func _build_player() -> void:
@@ -111,7 +142,7 @@ func _build_admin_console() -> void:
 	admin_console.add_child(box)
 
 	var input := LineEdit.new()
-	input.placeholder_text = "admin command (e.g. sort_all)"
+	input.placeholder_text = "command (try 'help')"
 	box.add_child(input)
 
 	var output := Label.new()
@@ -121,7 +152,12 @@ func _build_admin_console() -> void:
 		var result := await ApiClient.admin_command(command_text)
 		if result.ok and command_text == "sort_all":
 			apply_sort_all()
-		output.text = str(result.data)
+		if result.data.has("commands"):
+			output.text = "Available commands: " + ", ".join(result.data["commands"])
+		elif result.data.has("error"):
+			output.text = result.data["error"]
+		else:
+			output.text = str(result.data)
 		input.text = ""
 	)
 
@@ -143,7 +179,7 @@ func apply_sort_all() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if GameState.role == "admin" and event is InputEventKey and event.pressed and event.keycode == KEY_QUOTELEFT:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_QUOTELEFT:
 		toggle_admin_console()
 
 

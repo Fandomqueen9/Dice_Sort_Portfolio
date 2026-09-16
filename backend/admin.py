@@ -9,8 +9,13 @@ def _sort_all(user_id: int, args: dict) -> dict:
     return {"status": "ok", "effect": "sort_all"}
 
 
+def _help(user_id: int, args: dict) -> dict:
+    return {"status": "ok", "commands": sorted(COMMANDS.keys())}
+
+
 COMMANDS = {
     "sort_all": _sort_all,
+    "help": _help,
 }
 
 
@@ -18,7 +23,7 @@ COMMANDS = {
 @require_auth
 def command():
     if g.auth["role"] != "admin":
-        return jsonify(error="forbidden"), 403
+        return jsonify(error="only admins can run commands"), 403
 
     data = request.get_json(silent=True) or {}
     name = data.get("command", "")

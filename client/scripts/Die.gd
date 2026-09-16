@@ -7,10 +7,23 @@ var set_color: Color = Color.WHITE
 var sorted: bool = false
 
 var _material: StandardMaterial3D
+var _outline_root: Node3D
 
-const SIZE_BY_TYPE := {
-	"d4": 0.18, "d6": 0.2, "d8": 0.22, "d10": 0.24,
-	"d12": 0.26, "d20": 0.28, "d100": 0.3,
+const OUTLINE_SCALE := 1.06
+
+const SCALE_BY_TYPE := {
+	"d4": 0.22, "d6": 0.2, "d8": 0.22, "d10": 0.24,
+	"d12": 0.24, "d20": 0.26, "d100": 0.24,
+}
+
+const MODEL_BY_TYPE := {
+	"d4": preload("res://assets/PolyhedralDice/D4.gltf"),
+	"d6": preload("res://assets/PolyhedralDice/D6.gltf"),
+	"d8": preload("res://assets/PolyhedralDice/D8.gltf"),
+	"d10": preload("res://assets/PolyhedralDice/D10_Ones.gltf"),
+	"d12": preload("res://assets/PolyhedralDice/D12.gltf"),
+	"d20": preload("res://assets/PolyhedralDice/D20.gltf"),
+	"d100": preload("res://assets/PolyhedralDice/D10_Percentile.gltf"),
 }
 
 
@@ -18,37 +31,56 @@ func setup(type: String, color: Color) -> void:
 	die_type = type
 	set_color = color
 
-	var scale_amount: float = SIZE_BY_TYPE.get(type, 0.2)
-	var size: Vector3 = Vector3.ONE * scale_amount
+	var model_scale: float = SCALE_BY_TYPE.get(type, 0.22)
 
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = size
-	shape.shape = box
-	add_child(shape)
+	var model_instance := MODEL_BY_TYPE[type].instantiate() as Node3D
+	model_instance.scale = Vector3.ONE * model_scale
+	add_child(model_instance)
 
-	var mesh_instance := MeshInstance3D.new()
-	var mesh := BoxMesh.new()
-	mesh.size = size
+	var mesh_instances := _find_mesh_instances(model_instance)
+
 	_material = StandardMaterial3D.new()
 	_material.albedo_color = color
-	mesh_instance.mesh = mesh
-	mesh_instance.material_override = _material
-	add_child(mesh_instance)
+	for mesh_instance in mesh_instances:
+		mesh_instance.material_override = _material
 
-	var label := Label3D.new()
-	label.text = type
-	label.position = Vector3(0, size.y / 2.0 + 0.05, 0)
-	label.font_size = 32
-	label.pixel_size = 0.005
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	add_child(label)
+	_build_outline(model_instance, model_scale)
+	_build_collision(mesh_instances, model_scale)
+
+
+func _find_mesh_instances(node: Node) -> Array[MeshInstance3D]:
+	var found: Array[MeshInstance3D] = []
+	if node is MeshInstance3D:
+		found.append(node as MeshInstance3D)
+	for child in node.get_children():
+		found.append_array(_find_mesh_instances(child))
+	return found
+
+
+func _build_outline(model_instance: Node3D, model_scale: float) -> void:
+	var outline_material := StandardMaterial3D.new()
+	outline_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	outline_material.albedo_color = Color(1, 1, 1)
+	outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
+
+	_outline_root = model_instance.duplicate() as Node3D
+	_outline_root.scale = Vector3.ONE * (model_scale * OUTLINE_SCALE)
+	_outline_root.visible = false
+	add_child(_outline_root)
+
+	for mesh_instance in _find_mesh_instances(_outline_root):
+		mesh_instance.material_override = outline_material
+
+
+func _build_collision(mesh_instances: Array[MeshInstance3D], model_scale: float) -> void:
+	var shape := CollisionShape3D.new()
+	shape.shape = mesh_instances[0].mesh.create_convex_shape()
+	shape.scale = Vector3.ONE * model_scale
+	add_child(shape)
 
 
 func set_highlighted(on: bool) -> void:
-	_material.emission_enabled = on
-	_material.emission = Color(1, 1, 1)
-	_material.emission_energy_multiplier = 0.6 if on else 0.0
+	_outline_root.visible = on
 
 
 func pick_up() -> void:
