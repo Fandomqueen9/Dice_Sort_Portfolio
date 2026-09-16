@@ -6,10 +6,10 @@ var die_type: String = ""
 var set_color: Color = Color.WHITE
 var sorted: bool = false
 
-var _material: StandardMaterial3D
 var _outline_root: Node3D
 
 const OUTLINE_SCALE := 1.06
+const DIE_SHADER := preload("res://shaders/die.gdshader")
 
 const SCALE_BY_TYPE := {
 	"d4": 0.22, "d6": 0.2, "d8": 0.22, "d10": 0.24,
@@ -38,14 +38,33 @@ func setup(type: String, color: Color) -> void:
 	add_child(model_instance)
 
 	var mesh_instances := _find_mesh_instances(model_instance)
-
-	_material = StandardMaterial3D.new()
-	_material.albedo_color = color
-	for mesh_instance in mesh_instances:
-		mesh_instance.material_override = _material
+	_apply_die_shader(mesh_instances, color)
 
 	_build_outline(model_instance, model_scale)
 	_build_collision(mesh_instances, model_scale)
+
+
+func _apply_die_shader(mesh_instances: Array[MeshInstance3D], color: Color) -> void:
+	# The model files each split their geometry into two surfaces: the body,
+	# and the recessed number/pip engravings (their original material name
+	# contains "Recess"). Overriding both surfaces with one flat color (the
+	# old approach) erased the numbers entirely. Instead, color each surface
+	# separately so the engravings stay legible against the body color.
+	var body_material := ShaderMaterial.new()
+	body_material.shader = DIE_SHADER
+	body_material.set_shader_parameter("albedo_color", color)
+
+	var body_luminance := color.r * 0.299 + color.g * 0.587 + color.b * 0.114
+	var number_color := Color(0.05, 0.05, 0.05) if body_luminance > 0.5 else Color(0.95, 0.95, 0.95)
+	var number_material := ShaderMaterial.new()
+	number_material.shader = DIE_SHADER
+	number_material.set_shader_parameter("albedo_color", number_color)
+
+	for mesh_instance in mesh_instances:
+		for i in range(mesh_instance.mesh.get_surface_count()):
+			var original := mesh_instance.mesh.surface_get_material(i)
+			var is_number_surface := original != null and "recess" in original.resource_name.to_lower()
+			mesh_instance.set_surface_override_material(i, number_material if is_number_surface else body_material)
 
 
 func _find_mesh_instances(node: Node) -> Array[MeshInstance3D]:

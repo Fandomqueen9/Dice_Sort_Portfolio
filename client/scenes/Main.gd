@@ -30,6 +30,20 @@ func _ready() -> void:
 
 
 func _build_environment() -> void:
+	# A single directional light leaves faces angled away from it fully
+	# unlit (black) — walls/trays showed this as "two black sides". Ambient
+	# fill light via WorldEnvironment gives every face some base illumination.
+	var environment := Environment.new()
+	environment.background_mode = Environment.BG_COLOR
+	environment.background_color = Color(0.05, 0.05, 0.08)
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color(1, 1, 1)
+	environment.ambient_light_energy = 0.6
+
+	var world_environment := WorldEnvironment.new()
+	world_environment.environment = environment
+	add_child(world_environment)
+
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-55, -35, 0)
 	add_child(light)
@@ -197,8 +211,22 @@ func _build_pause_menu() -> void:
 
 	var save_button := Button.new()
 	save_button.text = "Save"
-	save_button.pressed.connect(func(): await save_current_state())
 	box.add_child(save_button)
+
+	var save_status_label := Label.new()
+	save_status_label.visible = false
+	box.add_child(save_status_label)
+
+	save_button.pressed.connect(func():
+		if GameState.role == "guest":
+			save_status_label.text = "Guests can't save"
+		else:
+			var success := await save_current_state()
+			save_status_label.text = "Saved!" if success else "Save failed"
+		save_status_label.visible = true
+		await get_tree().create_timer(2.0).timeout
+		save_status_label.visible = false
+	)
 
 	var quit_menu_button := Button.new()
 	quit_menu_button.text = "Quit to Menu"
@@ -284,14 +312,15 @@ func _try_load_saved_state() -> bool:
 	return true
 
 
-func save_current_state() -> void:
+func save_current_state() -> bool:
 	if GameState.role == "guest":
-		return
+		return false
 
 	var state: Array = []
 	for die in dice:
 		state.append(die.serialize_state())
-	await ApiClient.save_game(state)
+	var result := await ApiClient.save_game(state)
+	return result.ok
 
 
 func _start_autosave_timer() -> void:
