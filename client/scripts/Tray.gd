@@ -13,16 +13,16 @@ const SIGN_HEIGHT := 1.0
 const MINI_DIE_SCALE := 0.85
 const MATCHED_OUTLINE_COLOR := Color(0.2, 0.9, 0.3)
 
-# Loosely scattered layout (not a straight line), one offset per entry in
-# GameState.DIE_TYPES, matched by index.
+# Three straight, evenly-spaced rows (2 / 3 / 2), d20 centered in the
+# middle row. One offset per entry in GameState.DIE_TYPES, matched by index.
 const MINI_DIE_OFFSETS := [
-	Vector2(-0.30, 0.22),  # d4
-	Vector2(0.18, 0.26),   # d6
-	Vector2(-0.44, -0.02), # d8
-	Vector2(-0.06, 0.0),   # d10
-	Vector2(0.36, -0.04),  # d12
-	Vector2(-0.24, -0.26), # d20
-	Vector2(0.20, -0.28),  # d100
+	Vector2(-0.35, 0.28),  # d4    top-left
+	Vector2(0.35, 0.28),   # d6    top-right
+	Vector2(-0.55, 0.0),   # d8    mid-left
+	Vector2(0.55, 0.0),    # d10   mid-right
+	Vector2(-0.35, -0.28), # d12   bottom-left
+	Vector2(0.0, 0.0),     # d20   center
+	Vector2(0.35, -0.28),  # d100  bottom-right
 ]
 
 
