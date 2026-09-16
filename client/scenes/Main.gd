@@ -259,6 +259,8 @@ func _on_restart_pressed() -> void:
 	for die in dice:
 		die.reset()
 		die.global_position = Vector3(randf_range(-2.5, 2.5), randf_range(1.0, 3.0), randf_range(-2.5, 2.5))
+	for tray in trays:
+		tray.reset_sign_highlights()
 	win_label.visible = false
 	toggle_pause_menu()
 
@@ -281,6 +283,7 @@ func apply_sort_all() -> void:
 				if tray.tray_color.is_equal_approx(die.set_color):
 					die.global_position = tray.global_position + Vector3(0, 0.3, 0)
 					die.mark_sorted()
+					tray.mark_type_present(die.die_type)
 					break
 	_on_die_sorted(null)
 
@@ -323,9 +326,19 @@ func _try_load_saved_state() -> bool:
 		add_child(die)
 		if entry["sorted"]:
 			die.mark_sorted()
+			var tray := _tray_for_color(color)
+			if tray:
+				tray.mark_type_present(entry["type"])
 		dice.append(die)
 
 	return true
+
+
+func _tray_for_color(color: Color) -> Tray:
+	for tray in trays:
+		if tray.tray_color.is_equal_approx(color):
+			return tray
+	return null
 
 
 func save_current_state() -> bool:

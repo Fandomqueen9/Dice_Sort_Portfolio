@@ -7,6 +7,7 @@ var set_color: Color = Color.WHITE
 var sorted: bool = false
 
 var _outline_root: Node3D
+var _outline_material: StandardMaterial3D
 
 const OUTLINE_SCALE := 1.06
 const DIE_SHADER := preload("res://shaders/die.gdshader")
@@ -77,10 +78,10 @@ func _find_mesh_instances(node: Node) -> Array[MeshInstance3D]:
 
 
 func _build_outline(model_instance: Node3D, model_scale: float) -> void:
-	var outline_material := StandardMaterial3D.new()
-	outline_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	outline_material.albedo_color = Color(1, 1, 1)
-	outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
+	_outline_material = StandardMaterial3D.new()
+	_outline_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_outline_material.albedo_color = Color(1, 1, 1)
+	_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
 
 	_outline_root = model_instance.duplicate() as Node3D
 	_outline_root.scale = Vector3.ONE * (model_scale * OUTLINE_SCALE)
@@ -88,7 +89,11 @@ func _build_outline(model_instance: Node3D, model_scale: float) -> void:
 	add_child(_outline_root)
 
 	for mesh_instance in _find_mesh_instances(_outline_root):
-		mesh_instance.material_override = outline_material
+		mesh_instance.material_override = _outline_material
+
+
+func set_outline_color(color: Color) -> void:
+	_outline_material.albedo_color = color
 
 
 func _build_collision(mesh_instances: Array[MeshInstance3D], model_scale: float) -> void:

@@ -5,12 +5,25 @@ class_name Tray
 signal die_sorted(die: Die)
 
 var tray_color: Color = Color.WHITE
+var _mini_dice_by_type: Dictionary = {}
 
 const WOOD_COLOR := Color(0.36, 0.24, 0.14)
 const SIGN_DISTANCE := 0.7
 const SIGN_HEIGHT := 1.0
-const MINI_DIE_SCALE := 0.6
-const MINI_DIE_SPACING := 0.16
+const MINI_DIE_SCALE := 0.85
+const MATCHED_OUTLINE_COLOR := Color(0.2, 0.9, 0.3)
+
+# Loosely scattered layout (not a straight line), one offset per entry in
+# GameState.DIE_TYPES, matched by index.
+const MINI_DIE_OFFSETS := [
+	Vector2(-0.30, 0.22),  # d4
+	Vector2(0.18, 0.26),   # d6
+	Vector2(-0.44, -0.02), # d8
+	Vector2(-0.06, 0.0),   # d10
+	Vector2(0.36, -0.04),  # d12
+	Vector2(-0.24, -0.26), # d20
+	Vector2(0.20, -0.28),  # d100
+]
 
 
 func setup(color: Color, outward_direction: Vector3) -> void:
@@ -41,7 +54,18 @@ func _on_body_entered(body: Node) -> void:
 		body.global_position = global_position + Vector3(0, 0.3, 0)
 		body.mark_sorted()
 		die_sorted.emit(body)
+		mark_type_present(body.die_type)
 	# wrong color, or already sorted: no-op — die just rests here physically, no punishment
+
+
+func mark_type_present(die_type: String) -> void:
+	if _mini_dice_by_type.has(die_type):
+		_mini_dice_by_type[die_type].set_highlighted(true)
+
+
+func reset_sign_highlights() -> void:
+	for mini_die in _mini_dice_by_type.values():
+		mini_die.set_highlighted(false)
 
 
 func _build_sign(color: Color, outward_direction: Vector3) -> void:
@@ -55,7 +79,7 @@ func _build_sign(color: Color, outward_direction: Vector3) -> void:
 
 	var board := MeshInstance3D.new()
 	var board_mesh := BoxMesh.new()
-	board_mesh.size = Vector3(1.3, 0.9, 0.06)
+	board_mesh.size = Vector3(1.5, 1.1, 0.06)
 	board.mesh = board_mesh
 	var board_material := StandardMaterial3D.new()
 	board_material.albedo_color = WOOD_COLOR
@@ -63,13 +87,16 @@ func _build_sign(color: Color, outward_direction: Vector3) -> void:
 	sign_root.add_child(board)
 
 	var die_types := GameState.DIE_TYPES
-	var start_x := -MINI_DIE_SPACING * (die_types.size() - 1) / 2.0
 	for i in range(die_types.size()):
 		var mini_die := Die.new()
 		mini_die.setup(die_types[i], color)
 		mini_die.freeze = true
 		mini_die.collision_layer = 0
 		mini_die.collision_mask = 0
+		mini_die.set_outline_color(MATCHED_OUTLINE_COLOR)
 		mini_die.scale = Vector3.ONE * MINI_DIE_SCALE
-		mini_die.position = Vector3(start_x + i * MINI_DIE_SPACING, 0, -0.08)
+
+		var offset: Vector2 = MINI_DIE_OFFSETS[i]
+		mini_die.position = Vector3(offset.x, offset.y, -0.1)
 		sign_root.add_child(mini_die)
+		_mini_dice_by_type[die_types[i]] = mini_die
