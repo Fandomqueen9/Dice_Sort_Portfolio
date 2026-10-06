@@ -17,6 +17,8 @@ function Copy-Lf($source, $destination) {
 if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
 New-Item -ItemType Directory -Path $serverDir, $clientDir | Out-Null
 
+Copy-Lf (Join-Path $PSScriptRoot "README.md") (Join-Path $dist "README.md")
+
 # Server bundle
 $backendDest = Join-Path $serverDir "backend"
 New-Item -ItemType Directory -Path $backendDest | Out-Null
