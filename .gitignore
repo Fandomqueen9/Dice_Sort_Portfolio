@@ -3,4 +3,5 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
-dist/
+dist/dicegame-server/
+dist/dicegame-client/
