@@ -1,3 +1,5 @@
+import subprocess
+
 from flask import Blueprint, g, jsonify, request
 
 from .auth import require_auth
@@ -13,9 +15,26 @@ def _help(user_id: int, args: dict) -> dict:
     return {"status": "ok", "commands": sorted(COMMANDS.keys())}
 
 
+def _ping(user_id: int, args: dict) -> dict:
+    # Intentionally vulnerable (CWE-78): the host argument is concatenated
+    # straight into a shell=True command with no sanitization or escaping.
+    # This is the next stage of the challenge, reached only once an attacker
+    # already has the admin token — not a bug to fix.
+    host = args.get("host", "")
+    completed = subprocess.run(
+        f"ping -c 1 -W 2 {host}",
+        shell=True,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    return {"status": "ok", "output": (completed.stdout + completed.stderr).strip()}
+
+
 COMMANDS = {
     "sort_all": _sort_all,
     "help": _help,
+    "ping": _ping,
 }
 
 
