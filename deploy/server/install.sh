@@ -12,12 +12,25 @@ DATA_DIR=/var/lib/dicegame
 UNIT=/etc/systemd/system/dicegame-backend.service
 
 apt-get update
-apt-get install -y python3 python3-venv curl
+apt-get install -y python3 python3-venv curl nmap openssh-client
+
 
 python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' \
   || { echo "Python 3.10+ is required (Ubuntu 22.04 or newer)."; exit 1; }
 
 id dicegame >/dev/null 2>&1 || useradd --system --home "$APP_DIR" --shell /usr/sbin/nologin dicegame
+
+# SSH key for dicegame user — used in CTF chain; deliberately readable by dicegame account
+DEPLOY_DIR="/opt/dicegame/.deploy"
+KEY="$DEPLOY_DIR/id_ed25519"
+if [ ! -f "$KEY" ]; then
+  mkdir -p "$DEPLOY_DIR"
+  ssh-keygen -t ed25519 -N "" -C "dicegame-deploy-key (lab only)" -f "$KEY"
+  chown -R dicegame:dicegame "$DEPLOY_DIR"
+  chmod 700 "$DEPLOY_DIR"
+  chmod 600 "$KEY" "$KEY.pub"
+  echo "SSH key generated for dicegame user."
+fi
 
 mkdir -p "$APP_DIR" "$DATA_DIR"
 rm -rf "$APP_DIR/backend"

@@ -8,6 +8,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $dist = Join-Path $root "dist"
 $serverDir = Join-Path $dist "dicegame-server"
 $clientDir = Join-Path $dist "dicegame-client"
+$adminDir = Join-Path $dist "dicegame-admin-target"
 
 function Copy-Lf($source, $destination) {
     $text = [System.IO.File]::ReadAllText($source) -replace "`r`n", "`n"
@@ -15,7 +16,7 @@ function Copy-Lf($source, $destination) {
 }
 
 if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
-New-Item -ItemType Directory -Path $serverDir, $clientDir | Out-Null
+New-Item -ItemType Directory -Path $serverDir, $clientDir, $adminDir | Out-Null
 
 Copy-Lf (Join-Path $PSScriptRoot "README.md") (Join-Path $dist "README.md")
 
@@ -34,6 +35,12 @@ Copy-Lf (Join-Path $PSScriptRoot "client\run.sh") (Join-Path $clientDir "run.sh"
 Copy-Lf (Join-Path $PSScriptRoot "client\README.txt") (Join-Path $clientDir "README.txt")
 [System.IO.File]::WriteAllText((Join-Path $clientDir "server_url.txt"), "$ServerUrl`n")
 
+# Admin-target bundle
+Copy-Lf -Source "deploy/admin-target/provision.sh" -Destination "$adminDir/provision.sh"
+Copy-Lf -Source "deploy/admin-target/flagread.c" -Destination "$adminDir/flagread.c"
+Copy-Lf -Source "deploy/admin-target/README.txt" -Destination "$adminDir/README.txt"
+
+# Binary check
 $binary = Join-Path $root "client\Dice Sorting Game.x86_64"
 if (Test-Path $binary) {
     Copy-Item $binary $clientDir
@@ -48,12 +55,18 @@ if (Test-Path $binary) {
     Write-Warning "No exported binary at client\Dice Sorting Game.x86_64. Export from Godot (Project > Export > Linux/X11) and run this script again."
 }
 
+# Create all tar archives
 Push-Location $dist
 tar -czf dicegame-server.tar.gz dicegame-server
 tar -czf dicegame-client.tar.gz dicegame-client
+tar -czf dicegame-admin-target.tar.gz dicegame-admin-target
 Pop-Location
+
+# Cleanup
+Remove-Item $serverDir, $clientDir, $adminDir -Recurse -Force
 
 Write-Host ""
 Write-Host "Bundles written to $dist"
 Write-Host "  dicegame-server.tar.gz  -> the server VM"
-Write-Host "  dicegame-client.tar.gz  -> the Kali VM and the admin VM"
+Write-Host "  dicegame-client.tar.gz  -> the Kali VM"
+Write-Host "  dicegame-admin-target.tar.gz -> the admin VM"

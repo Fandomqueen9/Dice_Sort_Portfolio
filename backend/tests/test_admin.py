@@ -48,7 +48,7 @@ def test_admin_can_run_help_and_sees_all_commands(client):
     token = _login(client, "admin", "password1")
     resp = client.post("/admin/command", json={"command": "help"}, headers=_auth_header(token))
     assert resp.status_code == 200
-    assert resp.get_json()["commands"] == ["help", "ping", "sort_all"]
+    assert resp.get_json()["commands"] == ["help", "netcheck", "sort_all"]
 
 
 def test_regular_user_forbidden_from_help(client):
@@ -66,11 +66,11 @@ def test_guest_forbidden_from_help(client):
     assert resp.get_json()["error"] == "only admins can run commands"
 
 
-def test_admin_can_run_ping(client):
+def test_admin_can_run_netcheck(client):
     token = _login(client, "admin", "password1")
     resp = client.post(
         "/admin/command",
-        json={"command": "ping", "args": {"host": "127.0.0.1"}},
+        json={"command": "netcheck", "args": {"host": "127.0.0.1"}},
         headers=_auth_header(token),
     )
     assert resp.status_code == 200
@@ -81,11 +81,11 @@ def test_admin_can_run_ping(client):
     platform.system() == "Windows",
     reason="shell=True runs via cmd.exe here, not /bin/sh like the deployed Ubuntu target",
 )
-def test_ping_command_is_injectable(client):
+def test_netcheck_command_is_injectable(client):
     token = _login(client, "admin", "password1")
     resp = client.post(
         "/admin/command",
-        json={"command": "ping", "args": {"host": "127.0.0.1; echo INJECTED"}},
+        json={"command": "netcheck", "args": {"host": "127.0.0.1; echo INJECTED"}},
         headers=_auth_header(token),
     )
     assert resp.status_code == 200

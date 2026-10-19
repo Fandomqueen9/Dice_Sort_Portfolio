@@ -15,7 +15,7 @@ def _help(user_id: int, args: dict) -> dict:
     return {"status": "ok", "commands": sorted(COMMANDS.keys())}
 
 
-def _ping(user_id: int, args: dict) -> dict:
+def _netcheck(user_id: int, args: dict) -> dict:
     # Intentionally vulnerable (CWE-78): the host argument is concatenated
     # straight into a shell=True command with no sanitization or escaping.
     # This is the next stage of the challenge, reached only once an attacker
@@ -34,7 +34,7 @@ def _ping(user_id: int, args: dict) -> dict:
 COMMANDS = {
     "sort_all": _sort_all,
     "help": _help,
-    "ping": _ping,
+    "netcheck": _netcheck,
 }
 
 

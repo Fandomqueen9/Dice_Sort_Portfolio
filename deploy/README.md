@@ -6,7 +6,7 @@ Three machines:
 |---|---|---|
 | Server VM (Ubuntu 22.04+, `10.1.21.184`) | Runs the backend API | `dicegame-server.tar.gz` |
 | Kali VM | Player | `dicegame-client.tar.gz` |
-| Admin Ubuntu VM | Plays as admin | `dicegame-client.tar.gz` |
+| Admin Ubuntu VM | Plays as admin | `dicegame-admin-target.tar.gz` |
 
 The clients run the game locally and talk to the server over HTTP on port 8000. If the server's IP is not `10.1.21.184`, substitute yours in every command below.
 
@@ -27,7 +27,12 @@ On Kali, SSH is already installed; only `sudo systemctl enable --now ssh` is nee
 .\deploy\build-bundles.ps1 -ServerUrl "http://10.1.21.184:8000"
 ```
 
-This writes `dist/dicegame-server.tar.gz` and `dist/dicegame-client.tar.gz`. It warns if the exported binary is older than your latest code.
+This creates three archives in `dist/`:
+- `dicegame-server.tar.gz` — for the server VM
+- `dicegame-client.tar.gz` — for Kali and the admin VM
+- `dicegame-admin-target.tar.gz` — for the admin VM capture-the-flag target
+
+The script warns if the exported binary is older than your latest code.
 
 ## 1. Server VM
 
@@ -97,7 +102,41 @@ bash run.sh
 
 Logins: players register an account or play as guest. The admin VM logs in as `admin` / `password1`. In game, press `` ` `` for the command console (try `help`; only admin can run commands) and Esc for the pause menu.
 
-## 3. Troubleshooting
+## 3. Admin VM — attack target setup
+
+Copy the admin-target archive over (from the Windows machine):
+
+```bash
+scp dist/dicegame-admin-target.tar.gz <user>@<admin-vm-ip>:~/
+```
+
+On the admin VM, extract the bundle:
+
+```bash
+tar -xzf dicegame-admin-target.tar.gz && cd dicegame-admin-target
+```
+
+Copy the server's deploy key into the bundle directory. From the Windows machine, retrieve it from the server:
+
+```bash
+scp <user>@10.1.21.184:/opt/dicegame/.deploy/id_ed25519.pub dicegame-admin-target/deploy_key.pub
+```
+
+Then copy that file into the admin VM:
+
+```bash
+scp dicegame-admin-target/deploy_key.pub <user>@<admin-vm-ip>:~/dicegame-admin-target/
+```
+
+On the admin VM, run the provisioning script:
+
+```bash
+cd ~/dicegame-admin-target && sudo bash provision.sh
+```
+
+This installs the attack target: a SUID root binary with a command interface, SSH configured for key-based lateral movement, and supporting files. The script sets up SSH to accept the server's deploy key and starts the SSH service. Do not run this on a production machine.
+
+## 4. Troubleshooting
 
 | Problem | Check |
 |---|---|
@@ -107,10 +146,12 @@ Logins: players register an account or play as guest. The admin VM logs in as `a
 | `run.sh` says to edit `server_url.txt` | The bundle was built without `-ServerUrl`. Put the server address in it. |
 | Server IP changed | Edit `server_url.txt` on each client. Give the server a static IP or DHCP reservation to avoid this. |
 | Install fails on the server | Needs Ubuntu 22.04 or newer and internet access. Read the last error line from `install.sh`. |
+| `nmap` doesn't see the admin VM | Check that both VMs are on the same bridge in Proxmox. See networking checklist. |
 
 ## Notes
 
-- Traffic is plain HTTP (no TLS): passwords, tokens and commands are readable by anyone on the same network.
-- The default admin password is intentionally weak. Change it or don't expose the server if that isn't what you want.
+**Security:** The admin VM runs a deliberate SUID root binary and an SSH service configured for key-based lateral movement as part of the attack target. Never expose this lab to the internet or to a network with real credentials.
+
+Traffic is plain HTTP (no TLS): passwords, tokens and commands are readable by anyone on the same network. The default admin password is intentionally weak. Change it or don't expose the server if that isn't what you want.
 
 Command references: `systemctl(1)`, `journalctl(1)`, `scp(1)`, `ufw(8)`, `tar(1)`, Godot docs "Exporting for Linux".
