@@ -1,6 +1,20 @@
 extends Node3D
 
 const ROOM_SIZE := 10.0
+const INSTRUCTIONS_TEXT := """CONTROLS
+W A S D - move          Mouse - look around          Space - jump
+Left click - pick up the highlighted die; click again to drop it
+Esc - pause menu        ` (backtick) - admin command console
+
+HOW TO PLAY
+Sort each die into the wooden tray of its colour. The sign on each tray
+shows the dice that belong there, and lights green once matched.
+Complete one full set to unlock carrying 3 dice at once.
+
+ADMIN COMMANDS (admin account only)
+help          list all commands
+sort_all      sort every die into its tray
+netcheck <host>   ping a host from the server"""
 
 var player: CharacterBody3D
 var dice: Array[Die] = []
@@ -11,6 +25,8 @@ var trays: Array[Tray] = []
 var admin_console: Control
 var admin_input: LineEdit
 var pause_menu: Control
+var pause_box: VBoxContainer
+var instructions_panel: VBoxContainer
 var multi_carry_unlocked: bool = false
 
 
@@ -233,6 +249,7 @@ func _build_pause_menu() -> void:
 	var box := VBoxContainer.new()
 	box.position = Vector2(400, 250)
 	pause_menu.add_child(box)
+	pause_box = box
 
 	var title := Label.new()
 	title.text = "Paused"
@@ -267,6 +284,25 @@ func _build_pause_menu() -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	box.add_child(restart_button)
 
+	var instructions_button := Button.new()
+	instructions_button.text = "Instructions"
+	instructions_button.pressed.connect(_show_instructions.bind(true))
+	box.add_child(instructions_button)
+
+	instructions_panel = VBoxContainer.new()
+	instructions_panel.position = Vector2(400, 150)
+	instructions_panel.visible = false
+	pause_menu.add_child(instructions_panel)
+
+	var instructions_text := Label.new()
+	instructions_text.text = INSTRUCTIONS_TEXT
+	instructions_panel.add_child(instructions_text)
+
+	var back_button := Button.new()
+	back_button.text = "Back"
+	back_button.pressed.connect(_show_instructions.bind(false))
+	instructions_panel.add_child(back_button)
+
 	var quit_menu_button := Button.new()
 	quit_menu_button.text = "Quit to Menu"
 	quit_menu_button.pressed.connect(_on_quit_to_menu_pressed)
@@ -283,7 +319,13 @@ func toggle_pause_menu() -> void:
 		return
 
 	pause_menu.visible = not pause_menu.visible
+	_show_instructions(false)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if pause_menu.visible else Input.MOUSE_MODE_CAPTURED
+
+
+func _show_instructions(show: bool) -> void:
+	instructions_panel.visible = show
+	pause_box.visible = not show
 
 
 func _on_restart_pressed() -> void:
