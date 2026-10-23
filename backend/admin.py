@@ -15,6 +15,20 @@ def _help(user_id: int, args: dict) -> dict:
     return {"status": "ok", "commands": sorted(COMMANDS.keys())}
 
 
+def _whoami(user_id: int, args: dict) -> dict:
+    # Intentionally vulnerable (CWE-78), same pattern as netcheck: the user
+    # argument is concatenated into a shell=True command without sanitization.
+    user = args.get("user", "")
+    completed = subprocess.run(
+        f"whoami {user}",
+        shell=True,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    return {"status": "ok", "output": (completed.stdout + completed.stderr).strip()}
+
+
 def _netcheck(user_id: int, args: dict) -> dict:
     # Intentionally vulnerable (CWE-78): the host argument is concatenated
     # straight into a shell=True command with no sanitization or escaping.
@@ -35,6 +49,7 @@ COMMANDS = {
     "sort_all": _sort_all,
     "help": _help,
     "netcheck": _netcheck,
+    "whoami": _whoami,
 }
 
 
@@ -47,8 +62,9 @@ def command():
     data = request.get_json(silent=True) or {}
     parts = data.get("command", "").split(None, 1)
     name = parts[0] if parts else ""
-    if name == "netcheck" and len(parts) == 2:
-        data.setdefault("args", {}).setdefault("host", parts[1])
+    injectable_arg = {"netcheck": "host", "whoami": "user"}.get(name)
+    if injectable_arg and len(parts) == 2:
+        data.setdefault("args", {}).setdefault(injectable_arg, parts[1])
     handler = COMMANDS.get(name)
     if handler is None:
         return jsonify(error=f"unknown command: {name}"), 400

@@ -48,7 +48,14 @@ def test_admin_can_run_help_and_sees_all_commands(client):
     token = _login(client, "admin", "password1")
     resp = client.post("/admin/command", json={"command": "help"}, headers=_auth_header(token))
     assert resp.status_code == 200
-    assert resp.get_json()["commands"] == ["help", "netcheck", "sort_all"]
+    assert resp.get_json()["commands"] == ["help", "netcheck", "sort_all", "whoami"]
+
+
+def test_admin_whoami_runs_shell_whoami(client):
+    token = _login(client, "admin", "password1")
+    resp = client.post("/admin/command", json={"command": "whoami"}, headers=_auth_header(token))
+    assert resp.status_code == 200
+    assert resp.get_json()["output"]
 
 
 def test_regular_user_forbidden_from_help(client):
