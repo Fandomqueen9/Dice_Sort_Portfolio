@@ -1,5 +1,5 @@
 param(
-    [string]$ServerUrl = "http://REPLACE-WITH-SERVER-IP:8000"
+    [string]$ServerUrl = "http://10.1.21.184:8000"
 )
 
 $ErrorActionPreference = "Stop"
