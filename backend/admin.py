@@ -45,7 +45,10 @@ def command():
         return jsonify(error="only admins can run commands"), 403
 
     data = request.get_json(silent=True) or {}
-    name = data.get("command", "")
+    parts = data.get("command", "").split(None, 1)
+    name = parts[0] if parts else ""
+    if name == "netcheck" and len(parts) == 2:
+        data.setdefault("args", {}).setdefault("host", parts[1])
     handler = COMMANDS.get(name)
     if handler is None:
         return jsonify(error=f"unknown command: {name}"), 400
